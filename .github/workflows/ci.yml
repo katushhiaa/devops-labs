@@ -12,12 +12,24 @@ permissions:
   security-events: write
 
 jobs:
-  # ==========================================
-  # JOB 1: Backend CI (Build, Lint, Test, Cache)
-  # ==========================================
+
+  # Backend CI (Build, Lint, Test, Cache)
+
   test-backend:
     name: Backend - Lint & Tests
     runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,16 +46,17 @@ jobs:
         run: npm ci || npm install
 
       - name: Static Code Analysis (Lint)
-        run: npm run lint || echo "Linting step executed"
+        run: npm run lint || echo "Lint warnings allowed"
 
       - name: Run Backend Unit Tests
         env:
           NODE_ENV: test
-        run: npm test
+          MONGO_URI: mongodb://127.0.0.1:27017/test-database
+        run: npm test -- --detectOpenHandles --forceExit
 
-  # ==========================================
-  # JOB 2: Frontend CI (Build, Lint, Cache)
-  # ==========================================
+
+  # Frontend CI (Build, Lint, Cache)
+
   test-frontend:
     name: Frontend - Lint & Build
     runs-on: ubuntu-latest
@@ -68,9 +81,9 @@ jobs:
       - name: Build Frontend Artifacts (Vite)
         run: npm run build
 
-  # ==========================================
-  # JOB 3: Build & Security Scan Docker Images
-  # ==========================================
+
+  # Build & Security Scan Docker Images
+
   build-docker-images:
     name: Build & Scan Docker Images
     runs-on: ubuntu-latest
@@ -108,9 +121,9 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-  # ==========================================
-  # JOB 4: Publish to GitHub Container Registry
-  # ==========================================
+
+  # Publish to GitHub Container Registry
+
   publish-images:
     name: Publish Images to GHCR
     runs-on: ubuntu-latest
