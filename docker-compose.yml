@@ -1,0 +1,57 @@
+services:
+  # 1. Локальна MongoDB
+  mongodb:
+    image: mongo:7.0
+    container_name: cert_mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: cert_database
+    ports:
+      - "27017:27017"
+    volumes:
+      - cert_mongo_data:/data/db
+    networks:
+      - cert_network
+
+  # 2. Node.js Express Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: cert_backend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      SECRET: your_jwt_secret_key_here
+      MONGO_URI: mongodb://admin:password123@mongodb:27017/cert_database?authSource=admin
+    ports:
+      - "3001:3001"
+    networks:
+      - cert_network
+    depends_on:
+      - mongodb
+
+  # 3. Vue 3 Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: cert_frontend
+    restart: always
+    ports:
+      - "80:80"
+    networks:
+      - cert_network
+    depends_on:
+      - backend
+
+volumes:
+  cert_mongo_data:
+    driver: local
+
+networks:
+  cert_network:
+    driver: bridge
