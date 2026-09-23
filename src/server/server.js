@@ -24,8 +24,8 @@ const config = {
 const dbUri =
   process.env.MONGO_URI ||
   (process.env.NODE_ENV === "test"
-    ? "mongodb://localhost:27017/test-database"
-    : "mongodb+srv://kanurevamail:0x02G24YUd6AFGbe@dimplom-cluster.yc8oa4y.mongodb.net/?retryWrites=true&w=majority&appName=Dimplom-cluster/database");
+    ? "mongodb://127.0.0.1:27017/test-database"
+    : "mongodb://127.0.0.1:27017/diploma_db");
 mongoose.connect(dbUri);
 
 const db = mongoose.connection;
