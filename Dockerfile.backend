@@ -1,6 +1,5 @@
 FROM node:20-slim
 
-# Встановлюємо залежності та системний Chromium
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-liberation \
@@ -42,7 +41,6 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Важливо: відключаємо закачування хрому через npm і вказуємо шлях до встановленого chromium
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
