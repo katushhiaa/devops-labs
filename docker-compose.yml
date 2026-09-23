@@ -1,5 +1,5 @@
 services:
-  # 1. Локальна MongoDB
+  # 1. MongoDB
   mongodb:
     image: mongo:7.0
     container_name: cert_mongodb
