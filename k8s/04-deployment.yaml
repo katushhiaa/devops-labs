@@ -20,6 +20,7 @@ spec:
       labels:
         app: cert-generator
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: cert-generator
           image: cert-generator:1.1.0
@@ -30,22 +31,11 @@ spec:
             requests:
               cpu: "100m"
               memory: "128Mi"
+              ephemeral-storage: "100Mi"
             limits:
-              cpu: "300m"
+              cpu: "500m"
               memory: "256Mi"
-          envFrom:
-            - configMapRef:
-                name: app-config
-            - secretRef:
-                name: app-secret
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 3001
-            initialDelaySeconds: 15
-            periodSeconds: 10
-            timeoutSeconds: 2
-            failureThreshold: 3
+              ephemeral-storage: "500Mi"
           readinessProbe:
             httpGet:
               path: /health
@@ -53,5 +43,9 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 2
-            successThreshold: 1
             failureThreshold: 2
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secret
