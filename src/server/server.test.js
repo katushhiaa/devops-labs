@@ -1,6 +1,6 @@
-const request = require("supertest");
-const mongoose = require("mongoose");
-const app = require("./server.js");
+import request from "supertest";
+import mongoose from "mongoose";
+import app from "./server.js";
 
 jest.setTimeout(60000);
 
@@ -76,7 +76,7 @@ describe("API Endpoints", () => {
     let token, userId;
 
     beforeEach(async () => {
-      await request(app).post("/signup").send({
+      const signupRes = await request(app).post("/signup").send({
         name: "Test Teacher",
         email: "teacher@example.com",
         password: "password123",
@@ -134,7 +134,7 @@ describe("API Endpoints", () => {
     let token, userId, templateId;
 
     beforeEach(async () => {
-      await request(app).post("/signup").send({
+      const signupRes = await request(app).post("/signup").send({
         name: "Test Teacher",
         email: "teacher@example.com",
         password: "password123",
@@ -207,13 +207,14 @@ describe("API Endpoints", () => {
     });
   });
 
+  
   describe("Resilience & Graceful Degradation Suite", () => {
     it("Позитивна перевірка: при нормальній роботі fallback не активується", async () => {
       const res = await request(app).post("/login").send({
         email: "nonexistent@example.com",
         password: "password123",
       });
-
+      
       expect(res.statusCode).toEqual(400);
       expect(res.body).toHaveProperty("message", "Такого акаунту не існує");
       expect(res.body.status).toBeUndefined();
@@ -224,7 +225,7 @@ describe("API Endpoints", () => {
 
       const res = await request(app)
         .post("/login")
-        .set("x-simulate-fault", "true")
+        .set("x-simulate-fault", "true") 
         .send({
           email: "testlogin@example.com",
           password: "password123",
@@ -233,10 +234,14 @@ describe("API Endpoints", () => {
       const duration = Date.now() - startTime;
 
       expect(res.statusCode).toEqual(503);
+
       expect(res.headers["retry-after"]).toEqual("5");
+
       expect(res.body).toHaveProperty("status", "degraded");
       expect(res.body).toHaveProperty("retriesExecuted", 3);
       expect(res.body.message).toContain("Сервіс автентифікації тимчасово недоступний");
+
+      // 4. Підтвердження часу Backoff (300ms + 600ms + 1200ms = ~2100ms)
       expect(duration).toBeGreaterThanOrEqual(2000);
     }, 20000);
   });
