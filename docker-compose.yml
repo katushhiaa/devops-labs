@@ -1,5 +1,5 @@
 services:
-  # 1. MongoDB
+  # 1. MongoDB (База даних)
   mongodb:
     image: mongo:7.0
     container_name: cert_mongodb
@@ -15,7 +15,21 @@ services:
     networks:
       - cert_network
 
-  # 2. Node.js Express Backend
+  # 2. PDF Microservice (Генератор PDF / Сертифікатів)
+  pdf-service:
+    build:
+      context: ./pdf-service
+      dockerfile: Dockerfile
+    container_name: cert_pdf_service
+    restart: always
+    environment:
+      PORT: 3002
+    ports:
+      - "3002:3002"
+    networks:
+      - cert_network
+
+  # 3. Node.js Express Backend (Основний API)
   backend:
     build:
       context: .
@@ -27,14 +41,16 @@ services:
       PORT: 3001
       SECRET: your_jwt_secret_key_here
       MONGO_URI: mongodb://admin:password123@mongodb:27017/cert_database?authSource=admin
+      PDF_SERVICE_URL: http://pdf-service:3002
     ports:
       - "3001:3001"
     networks:
       - cert_network
     depends_on:
       - mongodb
+      - pdf-service
 
-  # 3. Vue 3 Frontend
+  # 4. Vue 3 Frontend
   frontend:
     build:
       context: .

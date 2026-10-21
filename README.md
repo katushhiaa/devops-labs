@@ -74,3 +74,42 @@
 
 > **Примітка щодо безпеки:** Значення передається у зашифрованому/закодованому вигляді та монтується в контейнер через секцію `envFrom`. Для генерації власного значення можна використати команду:  
 > `echo -n "your_secret_key" | base64`
+
+## 3. Пакетування та розгортання через Helm (Лабораторна робота №4)
+
+Застосунок опубліковано у вигляді Helm 3 чарта у каталозі `chart/`.
+
+### 3.1. Різниця між `version` та `appVersion`
+* **`version` (`0.1.0`):** Версія самого Helm-чарта (структури YAML-шаблонів, конфігураційних файлів та інфраструктури розгортання). Змінюється за правилами SemVer при правці маніфестів.
+* **`appVersion` (`1.1.0`):** Версія самого мікросервісного додатка (Node.js API, Vue Frontend, PDF Service), який розгортається у контейнерах.
+
+### 3.2. Конфігураційні параметри чарта (`chart/values.yaml`)
+
+| Параметр | Опис | Значення за замовчуванням |
+| :--- | :--- | :--- |
+| `namespace` | Простір імен Kubernetes | `anurieva` |
+| `replicaCount` | Кількість реплік подів | `2` |
+| `serviceType` | Тип Kubernetes Service | `ClusterIP` |
+| `env.appEnv` | Окруження додатку (`development`/`production`) | `development` |
+| `images.backend.repository` | Репозиторій образу Express API | `certific_generation-backend` |
+| `images.backend.tag` | Тег образу бекенду | `latest` |
+| `images.pdfService.repository` | Репозиторій образу PDF-сервісу | `certific_generation-pdf-service` |
+| `images.frontend.repository` | Репозиторій образу Vue/Nginx | `certific_generation-frontend` |
+| `resources.limits.cpu` | Ліміт CPU на контейнер | `200m` |
+| `resources.limits.memory` | Ліміт RAM на контейнер | `256Mi` |
+| `ingress.enabled` | Прапорець увімкнення Ingress | `true` |
+| `ingress.host` | Доменне ім'я для доступу | `cert-generator.local` |
+
+### 3.3. Інструкція зі встановлення для середовищ
+
+* **Development середовище (1 репліка, локальні образи):**
+  ```bash
+  helm install cert-app-dev ./chart -f chart/values-dev.yaml -n anurieva --create-namespace
+
+* **Production середовище (3 репліки, Ingress, ресурси):**
+   ```bash
+   helm install cert-app-prod ./chart -f chart/values-prod.yaml -n anurieva --create-namespace
+
+* **Встановлення з OCI-реєстру:**
+   ```bash
+   helm install cert-app-oci oci://localhost:5000/helm-charts/certific-genera

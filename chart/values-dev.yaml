@@ -1,0 +1,30 @@
+replicaCount: 1
+
+env:
+  appEnv: "development"
+  logLevel: "debug"
+
+images:
+  backend:
+    repository: certific_generation-backend
+    tag: latest
+    pullPolicy: Never
+  pdfService:
+    repository: certific_generation-pdf-service
+    tag: latest
+    pullPolicy: Never
+  frontend:
+    repository: certific_generation-frontend
+    tag: latest
+    pullPolicy: Never
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+ingress:
+  enabled: false

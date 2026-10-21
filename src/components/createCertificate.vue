@@ -182,7 +182,7 @@ export default {
     this.handleResize();
     this.getScaledImageWidth();
   },
-  beforeDestroy() {
+  beforeUnmount() {
     window.removeEventListener("resize", this.handleResize);
   },
   methods: {

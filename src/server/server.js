@@ -11,11 +11,31 @@ import PDFDocument from "pdfkit";
 import sizeOf from "image-size";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+
 const app = express();
+const APP_VERSION = "1.1.0";
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb" }));
+
+// Публічний ендпоінт для Kubernetes Health Probes та перевірки Rolling Update
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    app: "Certificate Generator API",
+    version: APP_VERSION,
+    environment: process.env.APP_ENV || "development",
+  });
+});
+
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "Certificate Generator Backend API is active",
+    version: APP_VERSION,
+  });
+});
 
 const config = {
   secret: process.env.SECRET || "default_secret",
@@ -146,14 +166,39 @@ app.get("/templates", [checkToken, checkRole("teacher")], async (req, res) => {
     res.status(200).json(templates);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Помилка сервера" });
+    res.status(500).json({ error: "Помилка сервера", version: APP_VERSION });
   }
 });
 
+const RESILIENCE_CONFIG = {
+  maxRetries: 3,
+  baseDelayMs: 300,
+  backoffFactor: 2,
+  timeoutMs: 2500,
+};
+
+async function executeWithRetry(operation, retries = RESILIENCE_CONFIG.maxRetries, delay = RESILIENCE_CONFIG.baseDelayMs) {
+  let attempt = 0;
+  while (attempt <= retries) {
+    try {
+      if (attempt > 0) {
+        console.warn(`[Resilience Retry] Спроба #${attempt} після очікування ${delay}ms...`);
+      }
+      return await operation();
+    } catch (error) {
+      attempt++;
+      if (attempt > retries) {
+        console.error(`[Resilience] Усі ${retries} спроби вичерпано. Відмова залежності.`);
+        throw error;
+      }
+      await new Promise((res) => setTimeout(res, delay));
+      delay *= RESILIENCE_CONFIG.backoffFactor;
+    }
+  }
+}
+
 let students = [];
 let certificates = [];
-
-app.use(express.json());
 
 app.post("/signup", async (req, res) => {
   const { name, email, password, role } = req.body;
@@ -187,8 +232,19 @@ app.post("/signup", async (req, res) => {
 
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
+  const startTime = Date.now();
+
   try {
-    const user = await User.findOne({ email });
+    if (req.headers["x-simulate-fault"] === "true") {
+      throw new Error("Simulated Database Outage (Fault Injection)");
+    }
+
+    const user = await executeWithRetry(
+      () => User.findOne({ email }).maxTimeMS(RESILIENCE_CONFIG.timeoutMs),
+      RESILIENCE_CONFIG.maxRetries,
+      RESILIENCE_CONFIG.baseDelayMs
+    );
+
     if (user) {
       const isMatch = await bcrypt.compare(password, user.password);
       if (isMatch) {
@@ -197,7 +253,7 @@ app.post("/login", async (req, res) => {
           allowInsecureKeySizes: true,
           expiresIn: 86400,
         });
-        res.status(200).json({
+        return res.status(200).json({
           accessToken: token,
           userId: user._id,
           role: user.role,
@@ -210,8 +266,16 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Такого акаунту не існує" });
     }
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Помилка сервера" });
+    const totalDuration = Date.now() - startTime;
+    console.error(`[Fallback Triggered] Відмова СУБД: ${error.message}. Загальний час: ${totalDuration}ms`);
+
+    res.setHeader("Retry-After", "5");
+    return res.status(503).json({
+      status: "degraded",
+      message: "Сервіс автентифікації тимчасово недоступний через збій бази даних. Спробуйте пізніше.",
+      retriesExecuted: RESILIENCE_CONFIG.maxRetries,
+      durationMs: totalDuration,
+    });
   }
 });
 
@@ -481,83 +545,35 @@ app.get(
   }
 );
 
+const PDF_SERVICE_URL = process.env.PDF_SERVICE_URL || "http://pdf-service:3002";
+
 app.post("/generatePDF", async (req, res) => {
   try {
-    const studentCertificates = req.body.studentCertificates;
+    const response = await fetch(`${PDF_SERVICE_URL}/generatePDF`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req.body),
+    });
 
-    if (!studentCertificates || studentCertificates.length === 0) {
-      console.error("No certificates provided");
-      return res.status(400).json({ error: "No certificates provided" });
+    if (!response.ok) {
+      throw new Error(`PDF Service responded with status: ${response.status}`);
     }
 
-    const a4Dimensions = [595, 842];
-    const margin = 0;
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-    const doc = new PDFDocument({
-      size: a4Dimensions,
-      margin: margin,
-      layout: "landscape",
-    });
-
-    const writeStream = fs.createWriteStream("studentCertificates.pdf");
-    doc.pipe(writeStream);
-
-    studentCertificates.forEach((certificatePath, index) => {
-      const imageBuffer = Buffer.from(certificatePath, "base64");
-
-      if (!imageBuffer) {
-        console.error(`Error converting certificate ${index + 1} to buffer`);
-        return res.status(500).json({
-          error: `Error converting certificate ${index + 1} to buffer`,
-        });
-      }
-
-      const imageDimensions = sizeOf(imageBuffer);
-
-      const pageWidth = a4Dimensions[1];
-      const pageHeight = a4Dimensions[0];
-      const imageAspect = imageDimensions.width / imageDimensions.height;
-      const pageAspect = pageWidth / pageHeight;
-
-      let width, height;
-      if (imageAspect > pageAspect) {
-        width = pageWidth;
-        height = pageWidth / imageAspect;
-      } else {
-        height = pageHeight;
-        width = pageHeight * imageAspect;
-      }
-
-      const x = (pageWidth - width) / 2;
-      const y = (pageHeight - height) / 2;
-
-      doc.image(imageBuffer, x, y, {
-        width: width,
-        height: height,
-      });
-
-      if (index !== studentCertificates.length - 1) {
-        doc.addPage({
-          size: a4Dimensions,
-          margin: margin,
-          layout: "landscape",
-        });
-      }
-    });
-
-    doc.end();
-    writeStream.on("finish", function () {
-      res.download("studentCertificates.pdf");
-    });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "attachment; filename=studentCertificates.pdf");
+    res.send(buffer);
   } catch (error) {
-    console.error("Server error:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error("Error communicating with PDF Service:", error);
+    res.status(500).json({ error: "Failed to generate PDF via dedicated service" });
   }
 });
 
 if (process.env.NODE_ENV !== "test") {
-  app.listen(3001, () => {
-    console.log("Server is running");
+  app.listen(PORT, () => {
+    console.log(`=== Certificate Generator v${APP_VERSION} running on port ${PORT} ===`);
   });
 }
 
