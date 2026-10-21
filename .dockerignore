@@ -1,6 +1,8 @@
 node_modules
 dist
 coverage
+.env
 .git
+*.log
 .vscode
 studentCertificates.pdf

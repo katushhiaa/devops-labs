@@ -13,4 +13,11 @@ spec:
       image: busybox
       command: ['wget']
       args: ['-q', '-O', '-', 'http://{{ include "certific-generator.fullname" . }}-frontend:80']
+      resources:
+        requests:
+          memory: "32Mi"
+          cpu: "50m"
+        limits:
+          memory: "64Mi"
+          cpu: "100m"
   restartPolicy: Never
