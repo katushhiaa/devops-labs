@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "certific-generator.fullname" . }}-backend
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "certific-generator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "certific-generator.fullname" . }}-backend
+  template:
+    metadata:
+      labels:
+        app: {{ include "certific-generator.fullname" . }}-backend
+        {{- include "certific-generator.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.images.backend.repository }}:{{ .Values.images.backend.tag }}"
+          imagePullPolicy: {{ .Values.images.backend.pullPolicy }}
+          ports:
+            - containerPort: 3001
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "certific-generator.fullname" . }}-config
+            - secretRef:
+                name: {{ include "certific-generator.fullname" . }}-secret
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "certific-generator.fullname" . }}-pdf-service
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "certific-generator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "certific-generator.fullname" . }}-pdf-service
+  template:
+    metadata:
+      labels:
+        app: {{ include "certific-generator.fullname" . }}-pdf-service
+        {{- include "certific-generator.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: pdf-service
+          image: "{{ .Values.images.pdfService.repository }}:{{ .Values.images.pdfService.tag }}"
+          imagePullPolicy: {{ .Values.images.pdfService.pullPolicy }}
+          ports:
+            - containerPort: 3002
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

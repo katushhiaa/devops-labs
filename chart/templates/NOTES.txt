@@ -1,0 +1,16 @@
+Дякуємо за встановлення релізу {{ .Release.Name }}!
+
+Застосунок розгорнуто в namespace: {{ .Values.namespace }}
+
+Щоб відкрити веб-інтерфейс застосунку:
+
+1. Отримайте IP-адресу Minikube:
+   $ minikube ip
+
+2. Додайте запис у ваш файл hosts (C:\Windows\System32\drivers\etc\hosts):
+   <MINIKUBE_IP>  {{ .Values.ingress.host }}
+
+3. Для швидкого проксі-доступу без Ingress виконайте:
+   $ kubectl port-forward svc/{{ include "certific-generator.fullname" . }}-frontend 8080:80 -n {{ .Values.namespace }}
+
+Потім відкрийте у браузері: http://localhost:8080

@@ -1,0 +1,32 @@
+# PROD-середовище: підвищена відмовостійкість (3 репліки), більші ресурси, версіоновані образи та Ingress
+replicaCount: 3
+
+env:
+  appEnv: "production"
+  logLevel: "error"
+
+images:
+  backend:
+    repository: ghcr.io/katushhiaa/certific_generation-backend
+    tag: "1.1.0"
+    pullPolicy: Always
+  pdfService:
+    repository: ghcr.io/katushhiaa/certific_generation-pdf-service
+    tag: "1.1.0"
+    pullPolicy: Always
+  frontend:
+    repository: ghcr.io/katushhiaa/certific_generation-frontend
+    tag: "1.1.0"
+    pullPolicy: Always
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+ingress:
+  enabled: true
+  host: cert-generator.company.com

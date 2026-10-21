@@ -206,4 +206,43 @@ describe("API Endpoints", () => {
       }, 100000);
     });
   });
+
+  
+  describe("Resilience & Graceful Degradation Suite", () => {
+    it("Позитивна перевірка: при нормальній роботі fallback не активується", async () => {
+      const res = await request(app).post("/login").send({
+        email: "nonexistent@example.com",
+        password: "password123",
+      });
+      
+      expect(res.statusCode).toEqual(400);
+      expect(res.body).toHaveProperty("message", "Такого акаунту не існує");
+      expect(res.body.status).toBeUndefined();
+    }, 15000);
+
+    it("Resilience Test: при збої СУБД сервіс виконує Retry та повертає Fallback 503", async () => {
+      const startTime = Date.now();
+
+      const res = await request(app)
+        .post("/login")
+        .set("x-simulate-fault", "true") 
+        .send({
+          email: "testlogin@example.com",
+          password: "password123",
+        });
+
+      const duration = Date.now() - startTime;
+
+      expect(res.statusCode).toEqual(503);
+
+      expect(res.headers["retry-after"]).toEqual("5");
+
+      expect(res.body).toHaveProperty("status", "degraded");
+      expect(res.body).toHaveProperty("retriesExecuted", 3);
+      expect(res.body.message).toContain("Сервіс автентифікації тимчасово недоступний");
+
+      // 4. Підтвердження часу Backoff (300ms + 600ms + 1200ms = ~2100ms)
+      expect(duration).toBeGreaterThanOrEqual(2000);
+    }, 20000);
+  });
 });

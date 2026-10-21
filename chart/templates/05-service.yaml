@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "certific-generator.fullname" . }}-backend
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "certific-generator.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.serviceType }}
+  selector:
+    app: {{ include "certific-generator.fullname" . }}-backend
+  ports:
+    - port: 3001
+      targetPort: 3001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "certific-generator.fullname" . }}-pdf-service
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "certific-generator.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.serviceType }}
+  selector:
+    app: {{ include "certific-generator.fullname" . }}-pdf-service
+  ports:
+    - port: 3002
+      targetPort: 3002
