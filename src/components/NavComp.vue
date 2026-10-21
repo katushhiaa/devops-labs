@@ -65,7 +65,7 @@ export default {
       this.clearLocalStorage();
     }
   },
-  beforeDestroy() {
+  beforeUnmount() {
     window.removeEventListener("beforeunload", this.handleBeforeUnload);
   },
   methods: {
