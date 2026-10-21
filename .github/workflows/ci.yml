@@ -68,6 +68,8 @@ jobs:
 
       - name: Install dependencies
         run: npm ci || npm install
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
 
       - name: Run PDF Service Tests
         run: npm test
