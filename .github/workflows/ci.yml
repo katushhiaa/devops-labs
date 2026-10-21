@@ -35,7 +35,10 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm install --ignore-scripts --omit=dev
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: 'true'
 
       - name: Static Code Analysis (Lint)
         run: npm run lint
@@ -65,11 +68,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
+          
       - name: Install dependencies
         run: npm ci || npm install
-        env:
-          PUPPETEER_SKIP_DOWNLOAD: 'true'
 
       - name: Run PDF Service Tests
         run: npm test
