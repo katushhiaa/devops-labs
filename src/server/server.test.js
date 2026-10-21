@@ -7,12 +7,17 @@ jest.setTimeout(60000);
 
 describe("API Endpoints", () => {
   beforeAll(async () => {
-    const dbUri = "mongodb://localhost:27017/test-database";
-    await mongoose.connect(dbUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+  const dbUri = process.env.MONGO_URI || "mongodb://localhost:27017/test-database";
+  
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
+  }
+  
+  await mongoose.connect(dbUri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
   });
+});
 
   afterAll(async () => {
     await mongoose.connection.dropDatabase();
