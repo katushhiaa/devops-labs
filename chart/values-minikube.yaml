@@ -1,22 +1,15 @@
 existingSecret: cert-app-secret
 
-backend:
-  replicaCount: 1
-  image:
+images:
+  backend:
     repository: ghcr.io/katushhiaa/cert-backend
     tag: "1.1.0"
-    pullPolicy: IfNotPresent
-
-frontend:
-  replicaCount: 1
-  image:
+    pullPolicy: Always
+  frontend:
     repository: ghcr.io/katushhiaa/cert-frontend
     tag: "1.1.0"
-    pullPolicy: IfNotPresent
-
-pdfService:
-  replicaCount: 1
-  image:
+    pullPolicy: Always
+  pdfService:
     repository: ghcr.io/katushhiaa/cert-pdf-service
     tag: "1.0.0"
     pullPolicy: IfNotPresent
