@@ -27,6 +27,7 @@ app.get("/health", (req, res) => {
     app: "Certificate Generator API",
     version: APP_VERSION,
     environment: process.env.APP_ENV || "development",
+    message: "App updated via GitOps!"
   });
 });
 

@@ -17,7 +17,7 @@
             <input
               type="password"
               v-model="password"
-              placeholder="Введіть пароль"
+              placeholder="Введіть пароль(показую вам зміну для лабораторної 5)"
               required
             />
           </div>
