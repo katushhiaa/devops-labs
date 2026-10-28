@@ -1,5 +1,9 @@
 existingSecret: cert-app-secret
 
+secrets:
+  jwtSecret: "cert-generator-jwt-super-secret-key-2026"
+  mongoUri: "mongodb://root:rootpassword@cert-app-certific-generator-mongodb:27017/diploma_db?authSource=admin"
+
 images:
   backend:
     repository: ghcr.io/katushhiaa/cert-backend
