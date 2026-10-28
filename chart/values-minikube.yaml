@@ -1,0 +1,22 @@
+existingSecret: cert-app-secret
+
+backend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/katsiarynaanuryieva/cert-backend
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/katsiarynaanuryieva/cert-frontend
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+pdfService:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/katsiarynaanuryieva/cert-pdf-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent

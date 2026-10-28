@@ -2,22 +2,18 @@ namespace: anurieva
 
 replicaCount: 2
 
-# Тип Kubernetes Service за замовчуванням
 serviceType: ClusterIP
 
-# Параметри конфігурації застосунку
 env:
   appEnv: "development"
   logLevel: "debug"
   port: "3001"
   pdfServicePort: "3002"
 
-# Конфіденційні дані
 secrets:
   jwtSecret: "cert-generator-jwt-super-secret-key-2026"
   mongoUri: "mongodb://cert-app-certific-generator-mongodb:27017/diploma_db"
 
-# Образи мікросервісів
 images:
   backend:
     repository: certific_generation-backend
@@ -36,7 +32,6 @@ images:
     tag: "6.0"
     pullPolicy: IfNotPresent
 
-# Ресурси (CPU та пам'ять) для контейнерів
 resources:
   limits:
     cpu: 200m
@@ -45,12 +40,10 @@ resources:
     cpu: 100m
     memory: 128Mi
 
-# Прапорець та налаштування для збереження даних MongoDB
 persistence:
   enabled: false
   size: 1Gi
 
-# Прапорець та налаштування для Ingress
 ingress:
   enabled: true
   host: cert-generator.local
