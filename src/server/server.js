@@ -575,6 +575,10 @@ if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
     console.log(`=== Certificate Generator v${APP_VERSION} running on port ${PORT} ===`);
   });
+
+  app.get("/version", (req, res) => {
+  res.json({ version: process.env.APP_VERSION || "1.0.0" });
+});
 }
 
 export default app;
