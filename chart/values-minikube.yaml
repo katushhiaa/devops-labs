@@ -11,7 +11,7 @@ images:
     pullPolicy: Always
   frontend:
     repository: ghcr.io/katushhiaa/cert-frontend
-    tag: "9.9.9"
+    tag: "1.1.0"
     pullPolicy: Always
   pdfService:
     repository: ghcr.io/katushhiaa/cert-pdf-service
