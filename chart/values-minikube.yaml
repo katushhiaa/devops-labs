@@ -1,4 +1,17 @@
+namespace: anurieva
+replicaCount: 4
+
 existingSecret: cert-app-secret
+
+rollout:
+  enabled: true
+  strategy:
+    canary:
+      steps:
+        - setWeight: 20
+        - pause: { duration: 30s }
+        - setWeight: 50
+        - pause: { duration: 20s }
 
 secrets:
   jwtSecret: "cert-generator-jwt-super-secret-key-2026"

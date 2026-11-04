@@ -1,0 +1,36 @@
+{{- if .Values.rollout.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "certific-generator.fullname" . }}-frontend
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "certific-generator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount | default 4 }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: {{ include "certific-generator.fullname" . }}-frontend
+  template:
+    metadata:
+      labels:
+        app: {{ include "certific-generator.fullname" . }}-frontend
+        {{- include "certific-generator.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.images.frontend.repository }}:{{ .Values.images.frontend.tag }}"
+          imagePullPolicy: {{ .Values.images.frontend.pullPolicy }}
+          ports:
+            - containerPort: 80
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+  strategy:
+    canary:
+      steps:
+        - setWeight: 20
+        - pause: { duration: 30s }
+        - setWeight: 50
+        - pause: { duration: 20s }
+{{- end }}
