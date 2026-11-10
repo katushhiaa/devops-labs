@@ -11,6 +11,6 @@ spec:
       app.kubernetes.io/instance: cert-app
       app.kubernetes.io/name: certific-generator
   endpoints:
-    - port: http
+    - port: http-backend
       path: /metrics
       interval: 15s
