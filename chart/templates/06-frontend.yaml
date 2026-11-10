@@ -42,19 +42,3 @@ spec:
     - name: http
       port: 80
       targetPort: 80
----
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: cert-app-servicemonitor
-  namespace: {{ .Values.namespace | default "anurieva" }}
-  labels:
-    release: kps
-spec:
-  selector:
-    matchLabels:
-      app: {{ include "certific-generator.fullname" . }}-frontend
-  endpoints:
-    - port: http
-      path: /
-      interval: 15s

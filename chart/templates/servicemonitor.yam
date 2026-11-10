@@ -1,15 +1,18 @@
+{{- if .Values.metrics.enabled | default true -}}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: cert-app-servicemonitor
+  name: {{ include "certific-generator.fullname" . }}-servicemonitor
   namespace: {{ .Values.namespace | default "anurieva" }}
   labels:
     release: kps
+    {{- include "certific-generator.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      app: cert-app-certific-generator-frontend
+      app: {{ include "certific-generator.fullname" . }}-backend
   endpoints:
     - port: http
-      path: /
+      path: {{ .Values.metrics.path | default "/metrics" }}
       interval: 15s
+{{- end -}}

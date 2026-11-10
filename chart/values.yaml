@@ -56,4 +56,7 @@ rollout:
         - setWeight: 20
         - pause: { duration: 30s }
         - setWeight: 50
-        - pause: { duration: 20s }  
+        - pause: { duration: 20s }
+metrics:
+  enabled: true
+  path: /metrics
