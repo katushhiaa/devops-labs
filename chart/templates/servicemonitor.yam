@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cert-app-servicemonitor
+  namespace: {{ .Values.namespace | default "anurieva" }}
+  labels:
+    release: kps
+spec:
+  selector:
+    matchLabels:
+      app: cert-app-certific-generator-frontend
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
