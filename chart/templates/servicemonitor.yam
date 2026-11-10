@@ -8,8 +8,8 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/instance: cert-app
+      app: cert-app-certific-generator-frontend
   endpoints:
-    - port: http-backend
-      path: /metrics
+    - port: http
+      path: /
       interval: 15s
