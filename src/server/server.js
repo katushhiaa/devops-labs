@@ -1,11 +1,11 @@
 import dotenv from "dotenv";
+import path from "path";
 dotenv.config({ path: path.resolve("../../.env") });
 
 import express from "express";
 import client from "prom-client";
 import mongoose from "mongoose";
 import cors from "cors";
-import path from "path";
 import fs from "fs";
 import nodeHtmlToImage from "node-html-to-image";
 import PDFDocument from "pdfkit";
@@ -17,6 +17,7 @@ const app = express();
 const APP_VERSION = "1.1.0";
 const PORT = 3001;
 
+// === 1. Реєстрація метрик Prometheus ===
 const register = new client.Registry();
 client.collectDefaultMetrics({ register });
 
@@ -36,9 +37,15 @@ const httpRequestDuration = new client.Histogram({
 register.registerMetric(httpRequestCounter);
 register.registerMetric(httpRequestDuration);
 
+// === 2. Публічний Ендпоінт /metrics (Спеціально ПЕРЕД усіма app.use) ===
+app.get("/metrics", async (req, res) => {
+  res.set("Content-Type", register.contentType);
+  res.end(await register.metrics());
+});
+
 const SKIP_PATHS = ["/metrics", "/health"];
 
-// Middleware для збору метрик, JSON-логів та FAIL_RATE (Пункт 2, 3 і 6)
+// === 3. Middleware для збору метрик, JSON-логів та FAIL_RATE (Пункт 2, 3 і 6) ===
 app.use((req, res, next) => {
   if (SKIP_PATHS.includes(req.path)) {
     return next();
@@ -89,15 +96,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Ендпоінт /metrics для Prometheus (Пункт 2)
-app.get("/metrics", async (req, res) => {
-  res.set("Content-Type", register.contentType);
-  res.end(await register.metrics());
-});
-
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // Публічний ендпоінт для Kubernetes Health Probes та перевірки Rolling Update
 app.get("/health", (req, res) => {
@@ -657,8 +658,8 @@ if (process.env.NODE_ENV !== "test") {
   });
 
   app.get("/version", (req, res) => {
-  res.json({ version: process.env.APP_VERSION || "1.0.0" });
-});
+    res.json({ version: process.env.APP_VERSION || "1.0.0" });
+  });
 }
 
 export default app;
