@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: path.resolve("../../.env") });
 
 import express from "express";
+import client from "prom-client";
 import mongoose from "mongoose";
 import cors from "cors";
 import path from "path";
@@ -15,6 +16,84 @@ import jwt from "jsonwebtoken";
 const app = express();
 const APP_VERSION = "1.1.0";
 const PORT = process.env.PORT || 3001;
+
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+const httpRequestCounter = new client.Counter({
+  name: "http_requests_total",
+  help: "Total HTTP requests",
+  labelNames: ["method", "route", "status"]
+});
+
+const httpRequestDuration = new client.Histogram({
+  name: "http_request_duration_seconds",
+  help: "Request duration in seconds",
+  labelNames: ["route"],
+  buckets: [0.05, 0.1, 0.3, 0.5, 1, 2, 5]
+});
+
+register.registerMetric(httpRequestCounter);
+register.registerMetric(httpRequestDuration);
+
+const SKIP_PATHS = ["/metrics", "/health"];
+
+// Middleware для збору метрик, JSON-логів та FAIL_RATE (Пункт 2, 3 і 6)
+app.use((req, res, next) => {
+  if (SKIP_PATHS.includes(req.path)) {
+    return next();
+  }
+
+  // Пункт 6: Штучні помилки за змінною середовища FAIL_RATE
+  const failRate = parseFloat(process.env.FAIL_RATE || "0");
+  if (failRate > 0 && Math.random() < failRate) {
+    const route = req.route ? req.route.path : req.path;
+    httpRequestCounter.inc({ method: req.method, route, status: "500" });
+    
+    // Пункт 3: JSON-лог про помилку
+    console.error(JSON.stringify({
+      level: "error",
+      msg: "injected failure",
+      method: req.method,
+      route,
+      status: 500,
+      version: process.env.APP_VERSION || APP_VERSION
+    }));
+
+    return res.status(500).json({ error: "Injected failure by FAIL_RATE" });
+  }
+
+  const startMs = Date.now();
+  const endTimer = httpRequestDuration.startTimer();
+
+  res.on("finish", () => {
+    const route = req.route ? req.route.path : req.path;
+    const durationMs = Date.now() - startMs;
+    const statusCode = res.statusCode.toString();
+
+    httpRequestCounter.inc({ method: req.method, route, status: statusCode });
+    endTimer({ route });
+
+    // Пункт 3: JSON-логи для Loki/Alloy
+    console.log(JSON.stringify({
+      level: res.statusCode >= 500 ? "error" : "info",
+      msg: "request",
+      method: req.method,
+      route,
+      status: res.statusCode,
+      duration_ms: durationMs,
+      version: process.env.APP_VERSION || APP_VERSION
+    }));
+  });
+
+  next();
+});
+
+// Ендпоінт /metrics для Prometheus (Пункт 2)
+app.get("/metrics", async (req, res) => {
+  res.set("Content-Type", register.contentType);
+  res.end(await register.metrics());
+});
 
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
