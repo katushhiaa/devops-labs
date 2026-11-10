@@ -15,7 +15,7 @@ import jwt from "jsonwebtoken";
 
 const app = express();
 const APP_VERSION = "1.1.0";
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // === 1. Реєстрація метрик Prometheus ===
 const register = new client.Registry();
@@ -37,7 +37,7 @@ const httpRequestDuration = new client.Histogram({
 register.registerMetric(httpRequestCounter);
 register.registerMetric(httpRequestDuration);
 
-// === 2. Публічний Ендпоінт /metrics (Спеціально ПЕРЕД усіма app.use) ===
+// === 2. Ендпоінт /metrics ПЕРЕД усіма middleware ===
 app.get("/metrics", async (req, res) => {
   res.set("Content-Type", register.contentType);
   res.end(await register.metrics());
@@ -51,13 +51,12 @@ app.use((req, res, next) => {
     return next();
   }
 
-  // Пункт 6: Штучні помилки за змінною середовища FAIL_RATE
+  // Пункт 6: Штучні помилки за FAIL_RATE
   const failRate = parseFloat(process.env.FAIL_RATE || "0");
   if (failRate > 0 && Math.random() < failRate) {
     const route = req.route ? req.route.path : req.path;
     httpRequestCounter.inc({ method: req.method, route, status: "500" });
     
-    // Пункт 3: JSON-лог про помилку
     console.error(JSON.stringify({
       level: "error",
       msg: "injected failure",
@@ -100,7 +99,7 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-// Публічний ендпоінт для Kubernetes Health Probes та перевірки Rolling Update
+// Health check для Kubernetes
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "ok",
@@ -127,7 +126,11 @@ const dbUri =
   (process.env.NODE_ENV === "test"
     ? "mongodb://127.0.0.1:27017/test-database"
     : "mongodb://127.0.0.1:27017/diploma_db");
-mongoose.connect(dbUri);
+
+// Захищене підключення до СУБД без аварійного вимикання
+mongoose.connect(dbUri).catch((err) => {
+  console.error("MongoDB initial connection error:", err.message);
+});
 
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error:"));
@@ -652,14 +655,13 @@ app.post("/generatePDF", async (req, res) => {
   }
 });
 
-if (process.env.NODE_ENV !== "test") {
-  app.listen(PORT, () => {
-    console.log(`=== Certificate Generator v${APP_VERSION} running on port ${PORT} ===`);
-  });
+app.get("/version", (req, res) => {
+  res.json({ version: process.env.APP_VERSION || APP_VERSION });
+});
 
-  app.get("/version", (req, res) => {
-    res.json({ version: process.env.APP_VERSION || "1.0.0" });
-  });
-}
+// Ключова зміна: явне слухання 0.0.0.0 для підтримки мережі Kubernetes
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`=== Certificate Generator v${APP_VERSION} running on port ${PORT} ===`);
+});
 
 export default app;
