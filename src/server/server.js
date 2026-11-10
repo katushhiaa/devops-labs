@@ -15,7 +15,7 @@ import jwt from "jsonwebtoken";
 
 const app = express();
 const APP_VERSION = "1.1.0";
-const PORT = process.env.PORT || 3001;
+const PORT = 3001;
 
 const register = new client.Registry();
 client.collectDefaultMetrics({ register });
