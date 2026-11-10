@@ -8,7 +8,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: {{ include "certific-generator.fullname" . }}-backend
+      app.kubernetes.io/instance: cert-app
   endpoints:
     - port: http-backend
       path: /metrics
