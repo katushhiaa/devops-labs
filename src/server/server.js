@@ -121,12 +121,14 @@ const config = {
   secret: process.env.SECRET || "default_secret",
 };
 
+const mongoHost = process.env.MONGO_HOST || "127.0.0.1";
+const mongoPort = process.env.MONGO_PORT || "27017";
+
 const dbUri =
   process.env.MONGO_URI ||
   (process.env.NODE_ENV === "test"
-    ? "mongodb://127.0.0.1:27017/test-database"
-    : "mongodb://127.0.0.1:27017/diploma_db");
-
+    ? `mongodb://${mongoHost}:${mongoPort}/test-database`
+    : `mongodb://${mongoHost}:${mongoPort}/diploma_db`);
 // Захищене підключення до СУБД без аварійного вимикання
 mongoose.connect(dbUri).catch((err) => {
   console.error("MongoDB initial connection error:", err.message);
@@ -660,8 +662,9 @@ app.get("/version", (req, res) => {
 });
 
 // Ключова зміна: явне слухання 0.0.0.0 для підтримки мережі Kubernetes
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`=== Certificate Generator v${APP_VERSION} running on port ${PORT} ===`);
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`=== Certificate Generator v1.1.0 running on port ${PORT} ===`);
 });
 
 export default app;
