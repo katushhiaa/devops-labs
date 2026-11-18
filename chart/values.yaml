@@ -18,15 +18,15 @@ images:
   backend:
     repository: certific_generation-backend
     tag: latest
-    pullPolicy: Never
+    pullPolicy: IfNotPresent
   pdfService:
     repository: certific_generation-pdf-service
     tag: latest
-    pullPolicy: Never
+    pullPolicy: IfNotPresent
   frontend:
     repository: certific_generation-frontend
     tag: latest
-    pullPolicy: Never
+    pullPolicy: IfNotPresent
   mongodb:
     repository: mongo
     tag: "6.0"
